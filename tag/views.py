@@ -12,17 +12,33 @@ POINT_R = 10
 THRESHOLD = MATCHING_RESOLUTION * 0.03
 MATCH_THRESHOLD = 10
 
-
+# Default view
 def default(request):
     html = "<html><body>Testing server</body></html>" ;
     return HttpResponse(html)
 
-
+# Visual match view
 def visualmatch(request):
+    # visual is a flag to mark whether to show the visual version or the default text output
     visual = request.GET.get('v')
     inputpoints = strToPointList(request.GET.get('dots'))
 
+    """
+    A few steps happens here:
+    1. strToPointList parses a string and converts it into a list of points
+    2. normalize will use the longest distance pair to rotate the points such that the pair
+       sits on vector (1, 1)
+    3. project will scale everything inside the resolution range. This also aligns the max point
+    """
+
     defpoints = sorted(project(normalize(strToPointList(tagdef.TAGDEF[0])), 1.0), sortfunc)
+
+    """
+    We also normalize the input points (points we are trying to match)
+    the "sweep" function will sweep a range of scaling factors and returns the one with optimal
+    result. Then we use this optimal version to to produce the visuals
+    We try twice here, once rotated 180 degrees. We will use whichever that have optimal result
+    """
     points1 = normalize(inputpoints, False)
     s_data1 = sweep(defpoints, points1)
     points2 = normalize(inputpoints, True)
@@ -33,6 +49,9 @@ def visualmatch(request):
         points = sorted(project(points2, s_data2),sortfunc)
     matching_score = score(defpoints, points)
 
+    """
+    Output a png
+    """
     if visual:
         response = HttpResponse(mimetype="image/png")
         img = Image.new("RGB", (MATCHING_RESOLUTION, MATCHING_RESOLUTION), "#FFFFFF")
@@ -91,26 +110,36 @@ def plotPoints(points, color, ctx, radius):
 def normalize(pointsin, orientation=False):
     points = pointsin
     origin = Point(0, 0)
+    """
+    1. Rotate the input by 180 degree before trying to align
+    """
     if orientation:
         for i in range(0, PATTERN_POINTS):
             points[i] = rotate(origin, pointsin[i], math.pi)
 
     input = sorted(points, sortfunc)
     min_point, max_point = maxpair(input)
-    # 2. Align the pair to (0,0) and (resolution,resolution)
+
+    """
+    2. Align the pair to (0,0) and (resolution,resolution)
+    """
     tx = input[min_point].x
     ty = input[min_point].y
     translated_input = list()
     for point in input:
         translated_input.append(Point(point.x - tx, point.y - ty))
-
+    """
+    3. Calculate the angle between the longest line vs. (1,1)
+    """
     vdef = Vector(translated_input[min_point].x - translated_input[max_point].x,
                   translated_input[min_point].y - translated_input[max_point].y)
     vtarget = Vector(1, 1)
     cos_a = dot(vdef, vtarget) / length(vdef) / length(vtarget)
     angle = math.acos(cos_a)
-    # 3. Move top left point to 0,0, rotate to minimize error and move back
 
+    """
+    4. Rotate things into place
+    """
     for i in range(0, PATTERN_POINTS):
         translated_input[i] = rotate(origin, translated_input[i], math.pi+angle)
 
@@ -180,6 +209,9 @@ def maxpair(input):
                 max_dist = d
                 min_point = i1
                 max_point = i2
+    """
+    Note this is index, not the actual point objects
+    """
     return min_point, max_point
 
 
