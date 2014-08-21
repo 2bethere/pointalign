@@ -13,27 +13,8 @@ THRESHOLD = MATCHING_RESOLUTION * 0.03
 MATCH_THRESHOLD = 10
 
 
-def match(request):
-    # Try parse the input
-    input = [int(x) for x in str(request.GET.get('dots')).split(',')]
-    inputpoints = zip(input[0::2], input[1::2])
-    #
-    point1 = Point(0, 0)
-    point2 = Point(0, 0)
-    for tag in tagdef.TAGDEF:
-        vote = 0
-        for point in tag:
-            point1.x = point[0]
-            point1.y = point[1]
-            for inpoint in inputpoints:
-                point2.x = inpoint[0]
-                point2.y = inpoint[1]
-                if (dist(point1, point2) <= 20):
-                    vote += 1
-        if vote >= 4:
-            return HttpResponse("A %s" % vote)
-
-    html = "<html><body>It is now %s.</body></html>" % vote;
+def default(request):
+    html = "<html><body>Testing server</body></html>" ;
     return HttpResponse(html)
 
 
@@ -59,14 +40,23 @@ def visualmatch(request):
         plotPoints(defpoints, "Green", draw, 10)
         plotPoints(points, "Red", draw, 5)
         shift = MATCHING_RESOLUTION / 2
-        """
+        #plot the threshold circles
         for i in range(0, PATTERN_POINTS):
-            x = (defpoints[i].x + points[i].x)/2
-            y = (defpoints[i].y + points[i].y)/2
+            min_d = 2147483647
+            for j in range(0, PATTERN_POINTS):
+                d = dist(defpoints[i], points[j])
+                if(d<min_d):
+                    min_d = d
+                    i_min = i
+                    j_min = j
+            x = (defpoints[i_min].x + points[j_min].x)/2
+            y = (defpoints[i_min].y + points[j_min].y)/2
             draw.ellipse((x * 0.8 - THRESHOLD + shift, y * 0.8 - THRESHOLD + shift, x * 0.8 + THRESHOLD + shift,
                      y * 0.8 + THRESHOLD + shift,),
                     outline="Blue")
-        """
+
+
+
         f = ImageFont.load_default()
         draw.text((shift, shift-200), "Score:" + str(matching_score), font=f, fill=0)
         draw.rectangle((shift, shift, MATCHING_RESOLUTION, MATCHING_RESOLUTION), outline="Black")

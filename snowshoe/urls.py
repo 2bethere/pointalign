@@ -5,8 +5,7 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     # Examples:
-    url(r'^$', 'tag.views.current_datetime', name='current_datetime'),
-    url(r'^match/$', 'tag.views.match', name='match'),
+    url(r'^$', 'tag.views.default', name='default'),
     url(r'^visualmatch/$', 'tag.views.visualmatch', name='visualmatch'),
     # url(r'^blog/', include('blog.urls')),
 
