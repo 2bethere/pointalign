@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+
+</head>
+<body>
+<canvas id="myCanvas" width="3000px" height="3000px"
+        style="border:1px solid #000000;">
+</canvas>
+<script>
+    function getRandomColor() {
+        var letters = '0123456789ABCDEF'.split('');
+        var color = '#';
+        for (var i = 0; i < 6; i++ ) {
+            color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
+    }
+
+    function plotStr(input, color)
+    {
+        processed = input.split(',');
+        console.log(processed);
+        var s = 0;
+        var x = 0;
+        var y = 0;
+        for(var v in processed){
+            if(s==0)
+            {
+                x = parseInt(processed[v]);
+                s = 1;
+            }else{
+                y = parseInt(processed[v]);
+                s = 0;
+                //plot
+                var c = document.getElementById("myCanvas");
+                var ctx = c.getContext("2d");
+                ctx.beginPath();
+                ctx.arc(x,y,5,0,2*Math.PI);
+
+
+                ctx.strokeStyle = color;
+                ctx.stroke();
+            }
+        }
+    }
+
+
+    //project 5 points onto matching grid
+    function project(def, f){
+
+        resolution = 300;
+        //Find longest pair
+        var max_dist = -1;
+        var min_point;
+        var max_point;
+        // 1. Determine the longest pair, p1 & p2
+        for(i1 = 0;i1<4;i1++){
+            for(i2 = i1+1;i2<5;i2++){
+                d = dist(def[i1],def[i2]);
+                if(d>max_dist){
+                    max_dist = d;
+                    min_point = i1;
+                    max_point = i2;
+                }
+            }
+        }
+        //scaling everything into the resolution region
+        var max_diag = resolution*1.414*f;
+        var scaling = max_diag/dist(def[min_point],def[max_point]);
+        result = [];
+        for(i =0;i<5;i++) {
+            result[i] = {x:0,y:0};
+            result[i].x = def[i].x*scaling;
+            result[i].y = def[i].y*scaling;
+        }
+        return result;
+    }
+
+    function sortfunc(p1,p2){
+
+        if(p2.y==p1.y){
+            return p1.x-p2.x;
+        }else if(p2.y>p1.y) {
+            return -1;
+        }else{
+            return 1;
+        }
+    }
+
+    function strToArray(input){
+         processed = input.split(',');
+
+        var s = 0;
+        var x = 0;
+        var y = 0;
+        var points = [];
+        var c= 0;
+        for(var v in processed){
+            if(s==0)
+            {
+                x = parseInt(processed[v]);
+                s = 1;
+            }else{
+                y = parseInt(processed[v]);
+                s = 0;
+                points[c] = {x:x,y:y};
+                c++;
+            }
+        }
+        return points;
+    }
+
+    function plotArr(input,color){
+        var c = document.getElementById("myCanvas");
+        var ctx = c.getContext("2d");
+        var shift = 1500;
+        for(i = 0;i<5;i++){
+            ctx.beginPath();
+            ctx.arc(input[i].x+shift,input[i].y+shift,5,0,2*Math.PI);
+            ctx.strokeStyle = color;
+            ctx.fillText(i+" x:"+Math.round(input[i].x)+"|y:"+Math.round(input[i].y),input[i].x+shift+20,input[i].y+shift);
+            ctx.stroke();
+        }
+    }
+
+    function tRAndSProj(def, target){
+        // def is definition of a set of 5 points
+        // 1. translate target to match top left point
+        xt = def[0].x - target[0].x;
+        yt = def[0].y - target[0].y;
+        console.log(yt);
+        for(i = 0;i<5;i++){
+            target[i].x+=xt;
+            target[i].y+=yt;
+        }
+        // 2. Find angle to right most and left most
+        vdef = {xd:(def[0].x-def[1].x),yd:(def[0].y-def[1].y)};
+        vtarget = {xd:(target[0].x-target[1].x),yd:(target[0].y-target[1].y)};
+        cos_a = dot(vdef,vtarget)/length(vdef)/length(vtarget);
+        angle = Math.acos(cos_a);
+        // 3. Move top left point to 0,0, rotate to minimize error and move back
+        for(i=0;i<5;i++){
+            rotate(def[0],target[i],-angle);
+        }
+
+        // 4. Scale to same resolution
+        return target;
+    }
+
+    function tRAndSProjDist(def, target){
+        // def is definition of a set of 5 points
+        var min_dist = -1;
+        // 1. Determine the longest pair, p1 & p2
+        for(i1 = 0;i1<4;i1++){
+            for(i2 = i1+1;i2<5;i2++){
+
+            }
+        }
+        // 2. Place p1 at top left, try matching
+        xt = def[0].x - target[0].x;
+        yt = def[0].y - target[0].y;
+        console.log(yt);
+        for(i = 0;i<5;i++){
+            target[i].x+=xt;
+            target[i].y+=yt;
+        }
+        // 2. Find angle to right most and left most
+        vdef = {xd:(def[0].x-def[1].x),yd:(def[0].y-def[1].y)};
+        vtarget = {xd:(target[0].x-target[1].x),yd:(target[0].y-target[1].y)};
+        cos_a = dot(vdef,vtarget)/length(vdef)/length(vtarget);
+        angle = Math.acos(cos_a);
+        // 3. Move top left point to 0,0, rotate to minimize error and move back
+        for(i=0;i<5;i++){
+            rotate(def[0],target[i],-angle);
+        }
+
+        // 4. Scale to same resolution
+        return target;
+    }
+    function rotate(origin,target,angle){
+        target.x-=origin.x;
+        target.y-=origin.y;
+        //console.log(target)
+        var xr = Math.cos(angle)*target.x-Math.sin(angle)*target.y;
+        var yr = Math.sin(angle)*target.x+Math.cos(angle)*target.y;
+        var res = {x:xr,y:yr};
+        //console.log(res);
+        return res;
+    }
+    function dot(v1,v2){
+        return v1.xd*v2.xd+v1.yd*v2.yd;
+    }
+    function length(vector){
+        var x = vector.xd;
+        var y = vector.yd;
+        return Math.sqrt(x*x+y*y);
+    }
+
+    function dist(p1, p2){
+        var yd = p2.y-p1.y;
+        var xd = p2.x-p1.x;
+        var vector = {xd:xd, yd:yd};
+        return length(vector);
+
+    }
+
+    function normalizeDef(def){
+        resolution = 400;
+        def.sort(sortfunc);
+        var max_dist = -1;
+        var min_point;
+        var max_point;
+        // 1. Determine the longest pair, p1 & p2
+        for(i1 = 0;i1<4;i1++){
+            for(i2 = i1+1;i2<5;i2++){
+                d = dist(def[i1],def[i2]);
+                if(d>max_dist){
+                    max_dist = d;
+                    min_point = i1;
+                    max_point = i2;
+                }
+            }
+        }
+        // 2. Align the pair to (0,0) and (resolution,resolution)
+        /*
+        var t;
+        if(def[max_point].y<def[min_point].y)
+        {
+            t = max_point;
+            max_point = min_point;
+            min_point = t;
+        }
+        */
+
+        var tx = def[min_point].x;
+        var ty = def[min_point].y;
+        for(i=0;i<5;i++){
+            def[i].x-=tx;
+            def[i].y-=ty;
+        }
+
+
+        //
+        vdef = {xd:(def[min_point].x-def[max_point].x),yd:(def[min_point].y-def[max_point].y)};
+        vtarget = {xd:1,yd:1};
+        cos_a = dot(vdef,vtarget)/length(vdef)/length(vtarget);
+        angle = Math.acos(cos_a);
+        console.log(Math.PI-angle);
+        // 3. Move top left point to 0,0, rotate to minimize error and move back
+        origin = {x:0,y:0};
+        for(i=0;i<5;i++){
+            def[i] = rotate(origin,def[i],Math.PI+angle);
+        }
+
+        // 4. Scale to same resolution
+        return def;
+    }
+
+    function moveDef(def){
+        resolution = 400;
+        def.sort(sortfunc);
+        var max_dist = -1;
+        var min_point;
+        var max_point;
+        // 1. Determine the longest pair, p1 & p2
+        for(i1 = 0;i1<4;i1++){
+            for(i2 = i1+1;i2<5;i2++){
+                d = dist(def[i1],def[i2]);
+                if(d>max_dist){
+                    max_dist = d;
+                    min_point = i1;
+                    max_point = i2;
+                }
+            }
+        }
+
+        var tx = def[min_point].x;
+        var ty = def[min_point].y;
+        for(i=0;i<5;i++){
+            def[i].x-=tx;
+            def[i].y-=ty;
+        }
+
+        // 4. Scale to same resolution
+        return def;
+    }
+
+
+    function testRot(){
+        res = []
+        res[0] = {x:0,y:0};
+        res[1] = {x:100,y:0};
+        res[2] = {x:0,y:0};
+        res[3] = {x:0,y:0};
+        res[4] = {x:0,y:0};
+        plotArr(res,"#F00");
+        //
+
+        vdef = {xd:(res[0].x-res[1].x),yd:(res[0].y-res[1].y)};
+
+        vtarget = {xd:10,yd:10};
+
+        cos_a = dot(vdef,vtarget)/length(vdef)/length(vtarget);
+        console.log(cos_a);
+        angle = Math.acos(cos_a);
+
+        // 3. Move top left point to 0,0, rotate to minimize error and move back
+        origin = {x:0,y:0};
+        for(i=0;i<2;i++){
+            res[i] = rotate(origin,res[i], Math.PI-angle);
+        }
+        plotArr(res,"#0F0");
+    }
+
+    function match(a,b){
+
+        var c = document.getElementById("myCanvas");
+        var ctx = c.getContext("2d");
+        var shift = 1500;
+
+
+        for(i=0;i<5;i++){
+            for(j=0;j<5;j++){
+                if(dist(a[i],b[j])<50)
+                {
+                    console.log("t");
+                    ctx.beginPath();
+                    ctx.arc(shift+(a[i].x+b[j].x)/2,shift+(a[i].y+b[j].y)/2,20,0,2*Math.PI);
+                    ctx.strokeStyle = "#00F";
+                    ctx.stroke();
+                }
+            }
+        }
+    }
+
+
+    var temp = strToArray("238,276,698,324,853,574,148,1146,786,1215");
+    console.log(temp);
+    temp.sort(sortfunc);
+    console.log(temp);
+
+    //plotArr(moveDef(temp),"#0F0");
+    //plotArr(normalizeDef(temp),"#F00");
+    //plotArr(project(moveDef(temp)),"#0F0");
+    var dt = project(normalizeDef(temp),1);
+    plotArr(dt,"#0F0");
+
+    var c = document.getElementById("myCanvas");
+    var ctx = c.getContext("2d");
+    var shift = 1500;
+    ctx.beginPath();
+    ctx.arc(shift,shift,20,0,2*Math.PI);
+    ctx.strokeStyle = "#000";
+    ctx.stroke();
+
+
+    //testRot();
+
+
+    //plotArr(project(normalizeDef(temp)),"#0F0");
+    t = project(normalizeDef(strToArray("119,719,363,937,943,792,724,1039,585,563")),1.1);
+    plotArr(t,"#FF0000");
+    match(dt,t);
+
+    //plotArr(project(normalizeDef(strToArray("795,1411,854,568,696,328,141,1138,238,276"))),"#FF0000");
+
+    //plotArr(project(normalizeDef(strToArray("53,896,296,1103,870,913,662,1180,492,716"))),"#FF0000");
+    //plotArr(strToArray("53,896,296,1103,870,913,662,1180,492,716"),"#FFF000");
+    //plotArr(project(normalizeDef(strToArray("795,1411,854,568,696,328,141,1138,238,276"))),"#FF0000");
+    //plotArr(project(normalizeDef(strToArray("890,1181,654,940,74,1064,303,831,423,1304"))),"#FF0000");
+
+
+    //
+    /*
+    target = strToArray("41,776,286,976,855,767,652,1040,474,581");
+    target.sort(sortfunc);
+    console.log(target);
+    target = tRAndSProj(temp,target);
+    plotArr(project(target),"#FF0000");
+    */
+
+    //plotArr(project("733,1372,903,748,783,487,117,1209,335,358"),getRandomColor());
+
+    //plotArr(project("795,1411,854,568,696,328,141,1138,238,276"),getRandomColor());
+    //plotArr(project("733,1372,903,748,783,487,117,1209,335,358"),getRandomColor());
+    //plotStr("238,276,698,324,853,574,148,1146,786,1215","#00FF00");
+
+    //plotStr("795,1411,854,568,696,328,141,1138,238,276",getRandomColor());
+    //plotStr("733,1372,903,748,783,487,117,1209,335,358",getRandomColor());
+    //plotStr("795,1411,854,568,696,328,141,1138,238,276",getRandomColor());
+
+
+    //plotStr("526,650,102,857,781,794,482,1648,1044,1374",getRandomColor());
+    /*
+     plotStr("430,1368,668,1134,558,547,794,779,312,894");
+     plotStr("870,937,628,692,64,801,275,565,386,1046");
+     plotStr("526,650,102,857,781,794,482,1648,1044,1374");
+     plotStr("728,1422,762,779,587,701,89,1389,133,508");
+     plotStr("116,889,126,1227,638,1547,300,1558,534,1127");
+     plotStr("320,888,339,1229,857,1537,517,1557,744,1121");
+     plotStr("817,1040,771,399,579,572,178,1078,108,205");
+     plotStr("874,1312,792,677,594,456,239,1394,130,513");
+     plotStr("890,1181,654,940,74,1064,303,831,423,1304");
+     plotStr("990,906,781,646,187,703,439,488,516,980");
+     plotStr("869,938,627,693,63,800,276,566,385,1047");
+     plotStr("785,160,335,110,951,413,241,985,883,1055");
+     plotStr("92,787,355,990,926,804,722,1065,541,610");
+     plotStr("41,776,286,976,855,767,652,1040,474,581");
+     plotStr("494,344,62,494,733,500,344,1327,947,1116");
+     plotStr("702,369,244,338,863,622,167,1207,810,1265");
+     plotStr("91,853,736,848,969,661,86,209,964,203");
+     plotStr("892,1047,879,700,364,400,703,375,470,809");
+     plotStr("64,1125,698,1149,934,980,86,474,956,514");
+     plotStr("464,318,1007,649,134,868,165,1157,569,1406");
+     plotStr("439,397,1009,680,128,983,233,1067,652,1471");
+     plotStr("301,137,935,266,180,779,316,1038,771,1128");
+     plotStr("64,605,661,416,211,1218,478,1345,924,1249");
+     plotStr("796,1360,740,1031,199,778,532,720,346,1177");
+     plotStr("193,1128,538,1083,806,551,852,877,402,682");
+     plotStr("0,1135,254,1343,822,1144,622,1418,441,953");
+     plotStr("119,719,363,937,943,792,724,1039,585,563");
+     plotStr("53,896,296,1103,870,913,662,1180,492,716");*/
+
+</script>
+</body>
+</html>

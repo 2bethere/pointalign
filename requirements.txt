@@ -1,0 +1,4 @@
+Django==1.6.5
+Pillow==2.5.3
+pygame==1.9.1release
+wsgiref==0.1.2
